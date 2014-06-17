@@ -634,7 +634,6 @@ function cet_taxonomy_admin_view_categories() {
       if (empty($term)) {
         break;
       }
-      if($term->tid != VOCAB_CATEGORY_CAREERS_TERM_ID) {
 
       // Count entries before the current page.
       if ($page && ($page * $page_increment) > $before_entries && !isset($back_peddle)) {
@@ -686,7 +685,6 @@ function cet_taxonomy_admin_view_categories() {
         $root_entries++;
       }
       $current_page[$key] = $term;
-    }
     } while ($term = next($tree));
 
     // Because we didn't use a pager query, set the necessary pager variables.
@@ -1020,15 +1018,23 @@ function admin_edit_category() {
   $op = arg(3);
   $category_vocab = CATEGORY_VOCABULARY_ID;
   $term = NULL;
-  if($op == 'add') {
+  if ($op == 'add') {
     drupal_set_title(t('Add Category/Sub Category'));
     $exclude = array();
-    $exclude[] = VOCAB_CATEGORY_CAREERS_TERM_ID; //Do not show the Careers Term
     $parent = array();
     $button_value = t('Save');
-  } elseif($op == 'edit') {
-    drupal_set_title(t('Edit Category/Sub Category'));
+  }
+  elseif ($op == 'edit') {
     $tid = (int) arg(4);
+
+    // CLP-2798 : Preventing Carrier term edit.
+    if ($tid == VOCAB_CATEGORY_CAREERS_TERM_ID) {
+      drupal_access_denied();
+      module_invoke_all('exit');
+      exit();
+    }
+
+    drupal_set_title(t('Edit Category/Sub Category'));
     $term = taxonomy_get_term($tid);
     $parent = array_keys(taxonomy_get_parents($tid));
     $children = taxonomy_get_tree($category_vocab, $tid);
@@ -1036,8 +1042,7 @@ function admin_edit_category() {
       $exclude[] = $child->tid;
     }
     $exclude[] = $tid;
-    $exclude[] = VOCAB_CATEGORY_CAREERS_TERM_ID; //Do not show the Careers Term
-    //Set the hidden tag id
+    // Set the hidden tag id.
     $form['tid'] = array(
       '#type' => 'hidden',
       '#default_value' => $tid,
